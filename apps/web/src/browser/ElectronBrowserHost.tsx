@@ -21,6 +21,10 @@ import {
   useActivePreviewSessions,
 } from "~/previewStateStore";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
+import {
+  readEnvironmentHasDesktopBrowser,
+  useEnvironmentHasDesktopBrowser,
+} from "~/state/entities";
 import { previewEnvironment } from "~/state/preview";
 import { useEnvironmentScope } from "~/state/session";
 
@@ -36,6 +40,7 @@ import { previewRuntimeTabId } from "./previewRuntimeTabId";
 function hostedBrowserSessions(
   previewByThreadKey: Record<string, ThreadPreviewState>,
   primaryEnvironmentId: EnvironmentId | null,
+  primaryHasDesktopBrowser: boolean,
 ) {
   const activeSessions = Object.entries(previewByThreadKey).flatMap(([threadKey, previewState]) => {
     const threadRef = parseScopedThreadKey(threadKey);
@@ -44,7 +49,12 @@ function hostedBrowserSessions(
           .filter(
             (snapshot) =>
               snapshot.runtime !== "server" ||
-              rendersServerTabNatively(threadRef.environmentId, primaryEnvironmentId, snapshot),
+              rendersServerTabNatively(
+                threadRef.environmentId,
+                primaryEnvironmentId,
+                primaryHasDesktopBrowser,
+                snapshot,
+              ),
           )
           .map((snapshot) => ({
             threadRef,
@@ -95,9 +105,11 @@ function startAnnotationThemeSync(preview: DesktopPreviewBridge): () => void {
 }
 
 function openLinkInPreview({ tabId, url, background }: DesktopPreviewOpenLinkEvent): void {
+  const primaryEnvironmentId = appAtomRegistry.get(primaryEnvironmentIdAtom);
   const source = hostedBrowserSessions(
     readActivePreviewSessions(),
-    appAtomRegistry.get(primaryEnvironmentIdAtom),
+    primaryEnvironmentId,
+    primaryEnvironmentId !== null && readEnvironmentHasDesktopBrowser(primaryEnvironmentId),
   ).find((session) => session.runtimeTabId === tabId);
   if (!source) return;
   void openUrlInPreview({
@@ -129,7 +141,12 @@ export function ElectronBrowserHost() {
   const previewByThreadKey = useActivePreviewSessions();
   const primaryEnvironmentId = useAtomValue(primaryEnvironmentIdAtom);
   useDesktopHostedPreviewSessions(primaryEnvironmentId);
-  const sessions = hostedBrowserSessions(previewByThreadKey, primaryEnvironmentId);
+  const primaryHasDesktopBrowser = useEnvironmentHasDesktopBrowser(primaryEnvironmentId);
+  const sessions = hostedBrowserSessions(
+    previewByThreadKey,
+    primaryEnvironmentId,
+    primaryHasDesktopBrowser,
+  );
 
   if (!isElectron) return null;
   return (
