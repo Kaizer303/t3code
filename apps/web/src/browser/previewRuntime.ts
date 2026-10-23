@@ -42,7 +42,7 @@ export function usePreviewAvailable(environmentId: EnvironmentId | null): boolea
   return isPreviewSupportedInRuntime() || serverBrowser;
 }
 
-// A primary without the desktop browser channel (a WSL backend) never hears about
+// A primary the desktop cannot reach over the browser channel never hears about
 // navigation in a local <webview>, so its tabs stream like any other environment's.
 export function rendersServerTabNatively(
   environmentId: EnvironmentId,

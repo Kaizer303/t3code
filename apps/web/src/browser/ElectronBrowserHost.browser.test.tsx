@@ -179,7 +179,7 @@ describe("ElectronBrowserHost", () => {
     expect(after.every((node, index) => node.isSameNode(before[index]!))).toBe(true);
   });
 
-  // A WSL primary has no desktop browser channel, so a local webview would never reach its server.
+  // Without the desktop browser channel, a local webview would never reach the primary's server.
   it.each([
     { primaryHasDesktopBrowser: true, mounted: ["tab_1"] },
     { primaryHasDesktopBrowser: false, mounted: [] },
