@@ -5,6 +5,7 @@ import type {
 } from "@react-navigation/native-stack";
 import { isValidElement, useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
+import { isDuoDevice } from "../lib/device-type";
 import { useMobileNavigationTheme } from "../lib/useMobileNavigationTheme";
 import { useDeviceType, useNativeLayoutMetrics } from "../native/native-layout-metrics";
 import {
@@ -281,7 +282,11 @@ export function V5StackHeader(props: {
       backButtonHidden={options.headerBackVisible === false}
       ios={{
         navigationItemStyle: options.unstable_navigationItemStyle,
-        minimizationBehavior: options.unstable_headerMinimizationBehavior,
+        // Only the Duo's short display needs the room. Its system default hides the bar on
+        // every registered scroll view, so screens that don't opt in keep it fixed.
+        minimizationBehavior: isDuoDevice(deviceType)
+          ? (options.unstable_headerMinimizationBehavior ?? "never")
+          : undefined,
         tintColor: options.headerTintColor,
         searchBar:
           mailSearch || searchOptions ? (

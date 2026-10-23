@@ -170,8 +170,8 @@ const DETAIL_HEADER_OPTIONS: AppScreenOptions = {
   headerShown: Platform.OS !== "android",
 };
 
-// Like Messages: reading back through history (scrolling up) minimizes the header,
-// and reversing toward the latest message restores it. iOS 27+.
+// Like Messages on the Duo: reading back through history (scrolling up) minimizes the
+// header, and reversing toward the latest message restores it. Other devices ignore it.
 const THREAD_HEADER_OPTIONS: AppScreenOptions = {
   ...DETAIL_HEADER_OPTIONS,
   unstable_headerMinimizationBehavior: "onScrollUp",
