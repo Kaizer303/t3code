@@ -684,13 +684,18 @@ const RootStackConfig = createWorkspaceStackNavigator({
     }),
     PullRequestFilterSearch: createNativeStackScreen({
       screen: PullRequestFilterSearchScreen,
-      options: {
-        ...DETAIL_HEADER_OPTIONS,
-        ...HORIZONTAL_FORM_SHEET_OPTIONS,
-        sheetAllowedDetents: formSheetDetents(0.75),
-        sheetGrabberVisible: true,
-        headerBackVisible: false,
-      },
+      // Android pushes it like the branch picker; a formSheet there leaves the list's header
+      // peeking above it once the keyboard opens.
+      options:
+        Platform.OS === "android"
+          ? { presentation: "card", headerShown: false }
+          : {
+              ...DETAIL_HEADER_OPTIONS,
+              ...HORIZONTAL_FORM_SHEET_OPTIONS,
+              sheetAllowedDetents: formSheetDetents(0.75),
+              sheetGrabberVisible: true,
+              headerBackVisible: false,
+            },
     }),
     PullRequestDiscussion: createNativeStackScreen({
       screen: PullRequestDiscussionScreen,

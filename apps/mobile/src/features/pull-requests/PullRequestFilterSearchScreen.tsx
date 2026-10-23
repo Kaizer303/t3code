@@ -11,6 +11,7 @@ import { AsyncResult, Atom } from "effect/reactivity";
 import { useRef, useState } from "react";
 import { FlatList, Platform, View, type TextInputInstance } from "react-native";
 
+import { AndroidScreenHeader } from "../../components/ui/AndroidScreenHeader";
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { SearchField } from "../../components/ui/SearchField";
@@ -179,48 +180,12 @@ export function PullRequestFilterSearchScreen({
       }
     />
   );
-  return (
-    <View className="flex-1 bg-sheet">
-      <SheetHeader
-        title={kind === "labels" ? "Filter by label" : "Filter by author"}
-        onClose={() => navigation.goBack()}
-        accessibilityLabel={kind === "labels" ? "Close label filter" : "Close author filter"}
-      />
-      {Platform.OS === "ios" ? (
-        <>
-          <NativeStackScreenOptions
-            options={{
-              unstable_headerToolbarItems: integratedSearch
-                ? () => [
-                    createNativeMailSearchToolbarItem({
-                      placeholder,
-                      onSearchTextChange: setQuery,
-                      showsSearchDismissButton: true,
-                      searchTextChangeId: "pr-filter-option-search",
-                    }),
-                  ]
-                : undefined,
-              headerSearchBarOptions: integratedSearch
-                ? undefined
-                : {
-                    placeholder,
-                    allowToolbarIntegration: true,
-                    autoCapitalize: "none",
-                    hideNavigationBar: false,
-                    obscureBackground: false,
-                    onChangeText: (event) => setQuery(event.nativeEvent.text),
-                    onCancelButtonPress: () => setQuery(""),
-                  },
-            }}
-          />
-          {integratedSearch ? null : (
-            <Toolbar placement="bottom">
-              <Toolbar.SearchBarSlot />
-            </Toolbar>
-          )}
-        </>
-      ) : (
-        <View className="px-4 pb-3 pt-1">
+  const title = kind === "labels" ? "Filter by label" : "Filter by author";
+  if (Platform.OS === "android") {
+    return (
+      <View className="flex-1 bg-sheet" collapsable={false}>
+        <AndroidScreenHeader title={title} hideBottomBorder onBack={() => navigation.goBack()} />
+        <View className="bg-header px-4 pb-3 pt-1">
           <SearchField
             inputRef={searchRef}
             accessibilityLabel={placeholder}
@@ -232,6 +197,46 @@ export function PullRequestFilterSearchScreen({
             value={query}
           />
         </View>
+        {list}
+      </View>
+    );
+  }
+  return (
+    <View className="flex-1 bg-sheet">
+      <SheetHeader
+        title={title}
+        onClose={() => navigation.goBack()}
+        accessibilityLabel={kind === "labels" ? "Close label filter" : "Close author filter"}
+      />
+      <NativeStackScreenOptions
+        options={{
+          unstable_headerToolbarItems: integratedSearch
+            ? () => [
+                createNativeMailSearchToolbarItem({
+                  placeholder,
+                  onSearchTextChange: setQuery,
+                  showsSearchDismissButton: true,
+                  searchTextChangeId: "pr-filter-option-search",
+                }),
+              ]
+            : undefined,
+          headerSearchBarOptions: integratedSearch
+            ? undefined
+            : {
+                placeholder,
+                allowToolbarIntegration: true,
+                autoCapitalize: "none",
+                hideNavigationBar: false,
+                obscureBackground: false,
+                onChangeText: (event) => setQuery(event.nativeEvent.text),
+                onCancelButtonPress: () => setQuery(""),
+              },
+        }}
+      />
+      {integratedSearch ? null : (
+        <Toolbar placement="bottom">
+          <Toolbar.SearchBarSlot />
+        </Toolbar>
       )}
       {list}
     </View>
