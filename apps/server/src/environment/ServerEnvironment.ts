@@ -266,6 +266,11 @@ export const make = Effect.gen(function* () {
         : {}),
       ...(desktopAppUpdate ? { desktopAppUpdate: true } : {}),
       serverBrowser: true,
+      // Same condition as DesktopBrowserChannel.available, which is fixed at bootstrap.
+      ...(serverConfig.desktopBrowserFd !== undefined &&
+      serverConfig.desktopBrowserControlFd !== undefined
+        ? { desktopBrowser: true }
+        : {}),
     },
   };
 
