@@ -164,9 +164,8 @@ export const ExecutionEnvironmentCapabilities = Schema.Struct({
   /** Server accepts `{ type: "once" }` scheduled tasks; older servers reject them on save. */
   oneTimeSchedules: Schema.optionalKey(Schema.Boolean),
   /** The desktop app that launched this server holds its browser channel, so
-      it can draw this server's tabs in its own `<webview>`. Absent on a WSL
-      backend, whose bootstrap cannot carry the channel fds, and on servers no
-      desktop app launched; the desktop app streams their tabs instead. */
+      it can draw this server's tabs in its own `<webview>`. Absent on servers
+      launched without the channel; the desktop app streams their tabs instead. */
   desktopBrowser: Schema.optionalKey(Schema.Boolean),
 });
 export type ExecutionEnvironmentCapabilities = typeof ExecutionEnvironmentCapabilities.Type;

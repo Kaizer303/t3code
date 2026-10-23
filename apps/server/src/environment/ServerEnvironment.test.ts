@@ -122,7 +122,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       }
     }),
   );
-  it.effect("advertises desktopBrowser only when the desktop browser channel fds are present", () =>
+  it.effect("advertises desktopBrowser only when the desktop can reach the browser channel", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const baseDir = yield* fs.makeTempDirectoryScoped();
@@ -146,10 +146,12 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
         desktopBrowserControlFd: 7,
       });
       expect(withChannel.capabilities.desktopBrowser).toBe(true);
-      // A WSL backend is bootstrapped over stdin, which carries no browser fds.
-      const wslBackend = yield* descriptorFor({});
-      expect(wslBackend.capabilities.serverBrowser).toBe(true);
-      expect(wslBackend.capabilities.desktopBrowser).toBeUndefined();
+      // A WSL primary gets no fds through wsl.exe; the desktop dials it with this secret instead.
+      const wslPrimary = yield* descriptorFor({ desktopBrowserSocketSecret: "secret" });
+      expect(wslPrimary.capabilities.desktopBrowser).toBe(true);
+      const withoutChannel = yield* descriptorFor({});
+      expect(withoutChannel.capabilities.serverBrowser).toBe(true);
+      expect(withoutChannel.capabilities.desktopBrowser).toBeUndefined();
     }),
   );
   it.effect.each([

@@ -14,7 +14,12 @@ export interface CdpRelayTarget {
   readonly url: () => string;
   readonly title: () => string;
   readonly userAgent: () => string;
-  /** The desktop and its server share a disk; download paths need no translation. */
+  /**
+   * Where this app reaches a path on the server's disk: the path itself when it
+   * launched the server on its own disk, a `\\wsl.localhost` path for WSL.
+   */
+  readonly serverPath: (path: string) => string;
+  /** Downloads land there, so the server's Playwright reads them where it asked. */
   readonly setDownloadDirectory: (directory: string | null) => void;
 }
 
@@ -120,11 +125,18 @@ export function createCdpRelayConnection(
     if (ACKNOWLEDGED.has(command.method)) return {};
     switch (command.method) {
       case "Browser.setDownloadBehavior": {
-        const directory = command.params?.["downloadPath"];
-        const allowed = command.params?.["behavior"] !== "deny" && typeof directory === "string";
-        target.setDownloadDirectory(allowed ? directory : null);
+        const requested = command.params?.["downloadPath"];
+        const directory =
+          command.params?.["behavior"] !== "deny" && typeof requested === "string"
+            ? target.serverPath(requested)
+            : null;
+        target.setDownloadDirectory(directory);
         const { browserContextId: _ignored, ...params } = command.params ?? {};
-        return target.send("Browser.setDownloadBehavior", params, undefined);
+        return target.send(
+          "Browser.setDownloadBehavior",
+          directory === null ? params : { ...params, downloadPath: directory },
+          undefined,
+        );
       }
       case "Browser.getVersion":
         return {

@@ -24,7 +24,6 @@ import { useBrowserSurfaceStore } from "~/browser/browserSurfaceStore";
 import type { BrowserViewportResizeDirection } from "~/browser/browserViewportLayout";
 import { previewRuntimeTabId } from "~/browser/previewRuntimeTabId";
 import { useRendersServerTabNatively } from "~/browser/previewRuntime";
-import { primaryEnvironmentIdAtom } from "~/state/primaryEnvironment";
 import { type ServerBrowserHandle, ServerBrowserSurface } from "~/browser/ServerBrowserSurface";
 import {
   closeServerPictureInPicture,

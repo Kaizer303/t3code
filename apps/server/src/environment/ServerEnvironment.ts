@@ -279,11 +279,7 @@ export const make = Effect.gen(function* () {
       peerLinks: true,
       mcpModeLimitHeader: true,
       linkFence: true,
-      // Same condition as DesktopBrowserChannel.available, which is fixed at bootstrap.
-      ...(serverConfig.desktopBrowserFd !== undefined &&
-      serverConfig.desktopBrowserControlFd !== undefined
-        ? { desktopBrowser: true }
-        : {}),
+      ...(ServerConfig.hasDesktopBrowserChannel(serverConfig) ? { desktopBrowser: true } : {}),
     },
   };
 
