@@ -97,6 +97,8 @@ describe("ResourceMonitorBinary", () => {
         prefix: "t3-resource-monitor-binary-",
       });
       const service = yield* ResourceMonitorBinary.make().pipe(
+        // Isolates the lookup from binaries a local cargo build left at the candidate paths.
+        Effect.provide(FileSystem.layerNoop({ exists: () => Effect.succeed(false) })),
         Effect.provide(ServerConfig.layerTest(process.cwd(), baseDir)),
         Effect.provideService(HostProcess.Platform, "darwin"),
         Effect.provideService(HostProcess.Architecture, "arm64"),
