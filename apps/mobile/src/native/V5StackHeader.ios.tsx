@@ -13,6 +13,7 @@ import {
   type HeaderBarButtonMailSearchToolbarItem,
   type SearchBarCommands,
   type StackHeaderConfigProps,
+  type StackHeaderMinimizationBehaviorIOS,
   type StackHeaderMenuElementIOS,
   type StackHeaderMenuIOS,
   type HeaderBarButtonItemWithMenu,
@@ -26,6 +27,7 @@ type ToolbarItem =
   | HeaderBarButtonSearchBarPlacementItem;
 type Options = NativeStackNavigationOptions & {
   readonly unstable_navigationItemStyle?: "editor" | "navigator";
+  readonly unstable_headerMinimizationBehavior?: StackHeaderMinimizationBehaviorIOS;
   readonly headerSubtitle?: string;
   readonly unstable_headerSubtitle?: string;
   readonly headerSubtitleStyle?: { color?: string; fontSize?: number; fontFamily?: string };
@@ -279,6 +281,7 @@ export function V5StackHeader(props: {
       backButtonHidden={options.headerBackVisible === false}
       ios={{
         navigationItemStyle: options.unstable_navigationItemStyle,
+        minimizationBehavior: options.unstable_headerMinimizationBehavior,
         tintColor: options.headerTintColor,
         searchBar:
           mailSearch || searchOptions ? (
