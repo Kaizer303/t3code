@@ -8,17 +8,23 @@ import {
 } from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
-import { useState } from "react";
-import { FlatList, Platform, Pressable, View } from "react-native";
+import { useRef, useState } from "react";
+import { FlatList, Platform, View, type TextInputInstance } from "react-native";
 
 import { AppActivityIndicator } from "../../components/ui/AppActivityIndicator";
-import { AppText as Text, AppTextInput as TextInput } from "../../components/ui/AppText";
-import { SymbolView } from "../../components/ui/AppSymbol";
 import { EmptyState } from "../../components/ui/EmptyState";
+import { SearchField } from "../../components/ui/SearchField";
+import { SelectionRow } from "../../components/ui/SelectionRow";
 import { SheetHeader } from "../../components/ui/SheetHeader";
+import { Toolbar } from "../../components/ui/Toolbar";
 import { NativeStackScreenOptions } from "../../native/StackHeader";
+import { useNativeMailSearchToolbar } from "../../native/use-native-mail-search-toolbar";
 import { composerPullRequests } from "../../state/pull-requests";
 import { useDebouncedValue } from "../../state/queries";
+import {
+  createNativeMailSearchToolbarItem,
+  NATIVE_MAIL_SEARCH_TOOLBAR_CONTENT_INSET,
+} from "../layout/native-mail-search-toolbar";
 import { pullRequestFilterChoices } from "./pullRequestList";
 import { usePullRequestListControls } from "./usePullRequestListControls";
 
@@ -54,6 +60,8 @@ export function PullRequestFilterSearchScreen({
   const { kind, environmentId, environmentIds, suggestions } = route.params;
   const listControls = usePullRequestListControls();
   const controls = listControls.controlsFor(environmentId);
+  const integratedSearch = useNativeMailSearchToolbar();
+  const searchRef = useRef<TextInputInstance>(null);
   const [query, setQuery] = useState("");
   const typed = query.trim().slice(0, 100);
   const sent = useDebouncedValue(typed, 250);
@@ -106,6 +114,56 @@ export function PullRequestFilterSearchScreen({
     });
   };
   const placeholder = kind === "labels" ? "Search labels" : "Search authors";
+  const list = (
+    <FlatList
+      data={rows}
+      keyExtractor={(value) => value.toLowerCase()}
+      className="flex-1"
+      contentInsetAdjustmentBehavior="automatic"
+      automaticallyAdjustKeyboardInsets={Platform.OS === "ios"}
+      keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingHorizontal: 16,
+        paddingTop: 16,
+        paddingBottom: integratedSearch ? NATIVE_MAIL_SEARCH_TOOLBAR_CONTENT_INSET + 16 : 16,
+      }}
+      renderItem={({ item, index }) => (
+        <SelectionRow
+          title={item}
+          role={kind === "labels" ? "checkbox" : "radio"}
+          selected={isSelected(item)}
+          isFirst={index === 0}
+          isLast={index === rows.length - 1}
+          onPress={() => choose(item)}
+        />
+      )}
+      ListEmptyComponent={
+        hosted.waiting || !settled ? (
+          <AppActivityIndicator className="my-8" />
+        ) : (
+          <EmptyState
+            title={
+              hosted.failed
+                ? "Couldn't search the host"
+                : kind === "labels"
+                  ? "No matching labels"
+                  : "No matching authors"
+            }
+            detail={
+              hosted.failed
+                ? "The host didn't answer. Try again in a moment."
+                : kind === "labels"
+                  ? "Search the labels of the repositories this list covers."
+                  : "Search people by name or handle on the repositories' hosts."
+            }
+            variant="plain"
+          />
+        )
+      }
+    />
+  );
   return (
     <View className="flex-1 bg-sheet">
       <SheetHeader
@@ -113,89 +171,54 @@ export function PullRequestFilterSearchScreen({
         onClose={() => navigation.goBack()}
         accessibilityLabel={kind === "labels" ? "Close label filter" : "Close author filter"}
       />
-      <NativeStackScreenOptions
-        options={{
-          headerSearchBarOptions:
-            Platform.OS === "ios"
-              ? {
-                  placeholder,
-                  autoCapitalize: "none",
-                  onChangeText: (event) => setQuery(event.nativeEvent.text),
-                  onCancelButtonPress: () => setQuery(""),
-                  hideNavigationBar: false,
-                  hideWhenScrolling: false,
-                  obscureBackground: false,
-                  placement: "stacked",
-                }
-              : undefined,
-        }}
-      />
-      <FlatList
-        data={rows}
-        keyExtractor={(value) => value.toLowerCase()}
-        contentInsetAdjustmentBehavior="automatic"
-        automaticallyAdjustKeyboardInsets
-        keyboardDismissMode="on-drag"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingBottom: 24 }}
-        ListHeaderComponent={
-          Platform.OS === "android" ? (
-            <View className="px-4 py-4">
-              <TextInput
-                accessibilityLabel={placeholder}
-                placeholder={placeholder}
-                placeholderTextColorClassName="accent-foreground-muted"
-                value={query}
-                onChangeText={setQuery}
-                autoCapitalize="none"
-                autoCorrect={false}
-                className="min-h-11 rounded-xl bg-grouped-card px-3 text-sm"
-              />
-            </View>
-          ) : undefined
-        }
-        renderItem={({ item }) => (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ selected: isSelected(item) }}
-            accessibilityLabel={item}
-            onPress={() => choose(item)}
-            className="min-h-12 flex-row items-center gap-3 border-b border-border-subtle px-4 py-3 active:opacity-70"
-          >
-            <Text className="min-w-0 flex-1 text-sm" numberOfLines={1}>
-              {item}
-            </Text>
-            {isSelected(item) ? (
-              <SymbolView name="checkmark" size={14} tintColorClassName="accent-icon" />
-            ) : null}
-          </Pressable>
-        )}
-        ListEmptyComponent={
-          hosted.waiting || !settled ? (
-            <AppActivityIndicator className="my-8" />
-          ) : (
-            <View className="px-4 py-6">
-              <EmptyState
-                title={
-                  hosted.failed
-                    ? "Couldn't search the host"
-                    : kind === "labels"
-                      ? "No matching labels"
-                      : "No matching authors"
-                }
-                detail={
-                  hosted.failed
-                    ? "The host didn't answer. Try again in a moment."
-                    : kind === "labels"
-                      ? "Search the labels of the repositories this list covers."
-                      : "Search people by name or handle on the repositories' hosts."
-                }
-                variant="plain"
-              />
-            </View>
-          )
-        }
-      />
+      {Platform.OS === "ios" ? (
+        <>
+          <NativeStackScreenOptions
+            options={{
+              unstable_headerToolbarItems: integratedSearch
+                ? () => [
+                    createNativeMailSearchToolbarItem({
+                      placeholder,
+                      onSearchTextChange: setQuery,
+                      showsSearchDismissButton: true,
+                      searchTextChangeId: "pr-filter-option-search",
+                    }),
+                  ]
+                : undefined,
+              headerSearchBarOptions: integratedSearch
+                ? undefined
+                : {
+                    placeholder,
+                    allowToolbarIntegration: true,
+                    autoCapitalize: "none",
+                    hideNavigationBar: false,
+                    obscureBackground: false,
+                    onChangeText: (event) => setQuery(event.nativeEvent.text),
+                    onCancelButtonPress: () => setQuery(""),
+                  },
+            }}
+          />
+          {integratedSearch ? null : (
+            <Toolbar placement="bottom">
+              <Toolbar.SearchBarSlot />
+            </Toolbar>
+          )}
+        </>
+      ) : (
+        <View className="px-4 pb-3 pt-1">
+          <SearchField
+            inputRef={searchRef}
+            accessibilityLabel={placeholder}
+            clearAccessibilityLabel={
+              kind === "labels" ? "Clear label search" : "Clear author search"
+            }
+            onChangeText={setQuery}
+            placeholder={placeholder}
+            value={query}
+          />
+        </View>
+      )}
+      {list}
     </View>
   );
 }

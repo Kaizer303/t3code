@@ -253,7 +253,7 @@ export function PullRequestListFilters(props: {
   const stateActions = choices("state", STATES, value.state);
   const involvementActions = choices("involvement", INVOLVEMENT, value.involvement);
   const labelActions: MenuProps["actions"] = [
-    { id: id("search", "labels"), title: "Search labels…", image: "magnifyingglass" },
+    { id: id("search", "labels"), title: "Search labels…" },
     { id: id("labels", ""), title: "All labels", state: selectedLabels.length ? "off" : "on" },
     ...labels.map((label) => ({
       id: id("label", label),
@@ -262,7 +262,7 @@ export function PullRequestListFilters(props: {
     })),
   ];
   const authorActions: MenuProps["actions"] = [
-    { id: id("search", "authors"), title: "Search authors…", image: "magnifyingglass" },
+    { id: id("search", "authors"), title: "Search authors…" },
     ...choices(
       "author",
       Object.fromEntries([
