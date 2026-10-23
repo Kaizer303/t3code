@@ -122,6 +122,36 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       }
     }),
   );
+  it.effect("advertises desktopBrowser only when the desktop browser channel fds are present", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const baseDir = yield* fs.makeTempDirectoryScoped();
+      const config = yield* makeServerConfig(baseDir);
+      yield* fs.makeDirectory(config.stateDir, { recursive: true });
+      const descriptorFor = (overrides: Partial<ServerConfig.ServerConfig["Service"]>) =>
+        Effect.gen(function* () {
+          const environment = yield* ServerEnvironment.ServerEnvironment;
+          return yield* environment.getDescriptor;
+        }).pipe(
+          Effect.provide(
+            ServerEnvironment.layer.pipe(
+              Layer.provide(layerEmptySecretStore),
+              Layer.provide(ServerConfig.layer({ ...config, mode: "desktop", ...overrides })),
+            ),
+          ),
+        );
+
+      const withChannel = yield* descriptorFor({
+        desktopBrowserFd: 6,
+        desktopBrowserControlFd: 7,
+      });
+      expect(withChannel.capabilities.desktopBrowser).toBe(true);
+      // A WSL backend is bootstrapped over stdin, which carries no browser fds.
+      const wslBackend = yield* descriptorFor({});
+      expect(wslBackend.capabilities.serverBrowser).toBe(true);
+      expect(wslBackend.capabilities.desktopBrowser).toBeUndefined();
+    }),
+  );
   it.effect.each([
     { name: "missing", content: undefined },
     { name: "empty", content: "" },
