@@ -14,6 +14,7 @@ import {
   nextPullRequestListInput,
   PR_LIST_PAGE_SIZE,
   pullRequestFilterChoices,
+  pullRequestLabelColors,
   pullRequestListHead,
   pullRequestListInput,
   scopedPullRequestListKey,
@@ -345,6 +346,20 @@ describe("withoutScratchProjectScope", () => {
       projectEnvironmentId: "env-b",
     };
     expect(withoutScratchProjectScope(elsewhere, projects)).toBe(elsewhere);
+  });
+});
+
+describe("pullRequestLabelColors", () => {
+  it("keeps the first usable color each label name carries", () => {
+    expect(
+      pullRequestLabelColors([
+        { name: "Bug", color: null },
+        { name: "bug", color: "d73a4a" },
+        { name: "BUG", color: "#000000" },
+        { name: "docs", color: "not-a-color" },
+        { name: "size:S", color: "#69C35F" },
+      ]),
+    ).toEqual({ bug: "#d73a4a", "size:s": "#69C35F" });
   });
 });
 

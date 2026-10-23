@@ -223,7 +223,21 @@ export function pullRequestListFacets(entries: readonly PullRequestListEntry[]) 
     labels: [...new Set(entries.flatMap((entry) => entry.labels.map((label) => label.name)))].sort(
       (a, b) => a.localeCompare(b),
     ),
+    labelColors: pullRequestLabelColors(entries.flatMap((entry) => entry.labels)),
   };
+}
+
+/** Each label's dot color by lowercased name; the first usable color a name carries wins. */
+export function pullRequestLabelColors(
+  labels: readonly { readonly name: string; readonly color: string | null }[],
+): Readonly<Record<string, string>> {
+  const colors: Record<string, string> = {};
+  for (const label of labels) {
+    const key = label.name.toLowerCase();
+    const color = pullRequestLabelColor(label.color);
+    if (color && !(key in colors)) colors[key] = color;
+  }
+  return colors;
 }
 
 export function filterPullRequestList<

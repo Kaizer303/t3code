@@ -25,7 +25,7 @@ import {
   createNativeMailSearchToolbarItem,
   NATIVE_MAIL_SEARCH_TOOLBAR_CONTENT_INSET,
 } from "../layout/native-mail-search-toolbar";
-import { pullRequestFilterChoices } from "./pullRequestList";
+import { pullRequestFilterChoices, pullRequestLabelColors } from "./pullRequestList";
 import { usePullRequestListControls } from "./usePullRequestListControls";
 
 export type PullRequestFilterSearchParams = {
@@ -36,6 +36,8 @@ export type PullRequestFilterSearchParams = {
   readonly environmentIds: readonly string[];
   /** What the loaded rows already carry, offered before the host has answered. */
   readonly suggestions: readonly string[];
+  /** Dot colors by lowercased label name, from the loaded rows. */
+  readonly labelColors?: Readonly<Record<string, string>>;
 };
 
 const optionsFamily = Atom.family((key: string) => {
@@ -57,7 +59,7 @@ export function PullRequestFilterSearchScreen({
   route,
 }: StaticScreenProps<PullRequestFilterSearchParams>) {
   const navigation = useNavigation();
-  const { kind, environmentId, environmentIds, suggestions } = route.params;
+  const { kind, environmentId, environmentIds, suggestions, labelColors } = route.params;
   const listControls = usePullRequestListControls();
   const controls = listControls.controlsFor(environmentId);
   const integratedSearch = useNativeMailSearchToolbar();
@@ -91,6 +93,10 @@ export function PullRequestFilterSearchScreen({
     ),
     query,
   });
+  const colors = {
+    ...pullRequestLabelColors(hosted.values.flatMap((options) => options.labels)),
+    ...labelColors,
+  };
   const isSelected = (value: string) =>
     selected.some((held) => held.toLowerCase() === value.toLowerCase());
   const choose = (value: string) => {
@@ -136,6 +142,15 @@ export function PullRequestFilterSearchScreen({
           selected={isSelected(item)}
           isFirst={index === 0}
           isLast={index === rows.length - 1}
+          leading={
+            kind === "labels" ? (
+              // Uncolored labels keep the dot's room so every name starts at the same edge.
+              <View
+                className="size-2.5 rounded-full"
+                style={{ backgroundColor: colors[item.toLowerCase()] ?? "transparent" }}
+              />
+            ) : undefined
+          }
           onPress={() => choose(item)}
         />
       )}

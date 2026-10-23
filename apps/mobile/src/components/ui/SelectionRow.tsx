@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Platform, Pressable, View } from "react-native";
 
 import { cn } from "../../lib/cn";
@@ -8,6 +9,8 @@ import { NavigationRow } from "./NavigationRow";
 /** A picker row in a grouped list; the first and last rows round the group's corners. */
 export function SelectionRow(props: {
   readonly icon?: AppSymbolName;
+  /** Drawn where the icon goes, for marks a symbol can't express (a label's color dot). */
+  readonly leading?: ReactNode;
   readonly onPress: () => void;
   readonly disabled?: boolean;
   readonly selected: boolean;
@@ -28,7 +31,9 @@ export function SelectionRow(props: {
         leading={
           props.icon ? (
             <SymbolView name={props.icon} size={24} tintColorClassName="accent-icon-muted" />
-          ) : undefined
+          ) : (
+            props.leading
+          )
         }
         trailing={
           props.selected ? (
@@ -60,7 +65,9 @@ export function SelectionRow(props: {
             tintColorClassName="accent-icon-muted"
             type="monochrome"
           />
-        ) : null}
+        ) : (
+          (props.leading ?? null)
+        )}
         <View className="min-w-0 flex-1 gap-0.5">
           <Text className="text-base font-t3-medium text-foreground" numberOfLines={1}>
             {props.title}
