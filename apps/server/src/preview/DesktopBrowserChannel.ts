@@ -127,10 +127,12 @@ const make = Effect.gen(function* () {
       ? (line) => writeAllToFileDescriptor(controlFd, Buffer.from(`${line}\n`))
       : null;
 
-  const command = (message: DesktopBrowserCommandType) =>
+  const command = (message: DesktopBrowserCommandType, writer = writeLine) =>
     writeLock.withPermits(1)(
       encodeCommand(message).pipe(
-        Effect.flatMap((line) => (writeLine === null ? Effect.void : writeLine(line))),
+        Effect.flatMap((line) =>
+          writer === null || writer !== writeLine ? Effect.void : writer(line),
+        ),
         Effect.catchCause((cause) =>
           Effect.logWarning("desktop browser command failed", { cause }),
         ),
@@ -228,6 +230,7 @@ const make = Effect.gen(function* () {
   );
 
   const endpoint = Effect.fn("DesktopBrowserChannel.endpoint")(function* (key: DesktopTabKey) {
+    const channelWriter = writeLine;
     const id = keyOf(key);
     const secret = NodeCrypto.randomBytes(24).toString("base64url");
     const server = yield* NodeSocketServer.makeWebSocket({
@@ -246,7 +249,7 @@ const make = Effect.gen(function* () {
       Effect.gen(function* () {
         if (inbound.get(id) === queue) inbound.delete(id);
         yield* Queue.shutdown(queue);
-        yield* command({ type: "release", ...key });
+        yield* command({ type: "release", ...key }, channelWriter);
       }),
     );
     // The relay serves one Playwright connection; a second would see the first's sessions.
@@ -266,7 +269,8 @@ const make = Effect.gen(function* () {
             Effect.flatMap((frames) =>
               Effect.forEach(
                 frames,
-                (frame) => command({ type: "cdp", ...key, message: frameText(frame) }),
+                (frame) =>
+                  command({ type: "cdp", ...key, message: frameText(frame) }, channelWriter),
                 { discard: true },
               ),
             ),

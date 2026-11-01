@@ -1,9 +1,11 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Queue from "effect/Queue";
+import * as Scope from "effect/Scope";
 import * as Socket from "effect/socket/Socket";
 
 import * as ServerConfig from "../config.ts";
@@ -101,6 +103,9 @@ it.layer(layer)("DesktopBrowserChannel over a desktop socket", (it) => {
       yield* stale.awaitPulls(2);
       expect(yield* channel.isAttached(key)).toBe(true);
 
+      const endpointScope = yield* Scope.make();
+      yield* channel.endpoint(key).pipe(Scope.provide(endpointScope));
+
       const freshSession = yield* Effect.scoped(channel.serveSocket(fresh.socket)).pipe(
         Effect.forkChild,
       );
@@ -108,9 +113,14 @@ it.layer(layer)("DesktopBrowserChannel over a desktop socket", (it) => {
       expect(stale.written).toContainEqual(expect.objectContaining({ code: 1000 }));
       expect(yield* channel.isAttached(key)).toBe(false);
 
+      yield* Queue.offer(fresh.frames, attached);
+      yield* fresh.awaitPulls(1);
+      yield* Scope.close(endpointScope, Exit.void);
+      expect(fresh.commands()).not.toContainEqual({ type: "release", ...key });
+
       yield* Queue.offer(stale.frames, attached);
       yield* stale.awaitPulls(1);
-      expect(yield* channel.isAttached(key)).toBe(false);
+      expect(yield* channel.isAttached(key)).toBe(true);
       yield* channel.pointer(key, { phase: "move", x: 3, y: 4 });
       expect(fresh.commands()).toContainEqual(expect.objectContaining({ type: "pointer" }));
       expect(stale.commands()).toEqual([]);
