@@ -151,7 +151,7 @@ it.layer(NodeServices.layer)("ServerEnvironmentLive", (it) => {
       expect(wslPrimary.capabilities.desktopBrowser).toBe(true);
       const withoutChannel = yield* descriptorFor({});
       expect(withoutChannel.capabilities.serverBrowser).toBe(true);
-      expect(withoutChannel.capabilities.desktopBrowser).toBeUndefined();
+      expect(withoutChannel.capabilities.desktopBrowser).toBe(false);
     }),
   );
   it.effect.each([

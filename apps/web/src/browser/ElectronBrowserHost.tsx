@@ -21,7 +21,10 @@ import {
   useActivePreviewSessions,
 } from "~/previewStateStore";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
-import { readEnvironmentHasDesktopBrowser, useEnvironmentHasDesktopBrowser } from "~/state/entities";
+import {
+  readEnvironmentHasDesktopBrowser,
+  useEnvironmentHasDesktopBrowser,
+} from "~/state/entities";
 import { previewEnvironment } from "~/state/preview";
 import { useEnvironmentScope } from "~/state/session";
 
@@ -138,7 +141,11 @@ export function ElectronBrowserHost() {
   const primaryEnvironmentId = useAtomValue(primaryEnvironmentIdAtom);
   useDesktopHostedPreviewSessions(primaryEnvironmentId);
   const primaryHasDesktopBrowser = useEnvironmentHasDesktopBrowser(primaryEnvironmentId);
-  const sessions = hostedBrowserSessions(previewByThreadKey, primaryEnvironmentId, primaryHasDesktopBrowser);
+  const sessions = hostedBrowserSessions(
+    previewByThreadKey,
+    primaryEnvironmentId,
+    primaryHasDesktopBrowser,
+  );
 
   if (!isElectron) return null;
   return (

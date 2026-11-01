@@ -329,16 +329,19 @@ export function useEnvironmentSupportsServerBrowser(environmentId: EnvironmentId
   );
 }
 
+// Older primary servers do not advertise this capability. Preserve their native rendering.
 export function useEnvironmentHasDesktopBrowser(environmentId: EnvironmentId | null): boolean {
   const configs = useServerConfigs();
-  return (
-    environmentId !== null &&
-    configs.get(environmentId)?.environment.capabilities.desktopBrowser === true
-  );
+  const config = environmentId === null ? undefined : configs.get(environmentId);
+  return config !== undefined && config.environment.capabilities.desktopBrowser !== false;
 }
 
 export function readEnvironmentHasDesktopBrowser(environmentId: EnvironmentId | null): boolean {
-  return environmentId !== null && appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId)?.environment.capabilities.desktopBrowser === true;
+  const config =
+    environmentId === null
+      ? undefined
+      : appAtomRegistry.get(environmentServerConfigsAtom).get(environmentId);
+  return config !== undefined && config.environment.capabilities.desktopBrowser !== false;
 }
 
 export function readEnvironmentSupportsServerBrowser(environmentId: EnvironmentId): boolean {

@@ -1,10 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off - Bridges Playwright's WebSocket transport to the desktop's channel.
 /**
- * Playwright connects over CDP only through a WebSocket URL, so each attached
- * desktop tab gets a loopback endpoint with an unguessable path. Its frames
- * cross to the desktop's relay, which owns the tab's `webContents.debugger`:
- * over the bootstrap file descriptors, or over a WebSocket the desktop dials
- * when it could not hand those down, as for a WSL backend.
+ * Playwright requires a WebSocket CDP endpoint for each desktop tab.
+ * The loopback endpoint relays frames over inherited pipes or a WSL socket.
  */
 import * as NodeHttpServerRequest from "@effect/platform-node/NodeHttpServerRequest";
 import * as NodeStream from "@effect/platform-node/NodeStream";

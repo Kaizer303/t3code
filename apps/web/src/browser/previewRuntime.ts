@@ -66,10 +66,13 @@ export function useRendersServerTabNatively(
 ): boolean {
   const primaryEnvironmentId = useAtomValue(primaryEnvironmentIdAtom);
   const primaryHasDesktopBrowser = useEnvironmentHasDesktopBrowser(primaryEnvironmentId);
-  return environmentId !== null && rendersServerTabNatively(
-    environmentId,
-    primaryEnvironmentId,
-    primaryHasDesktopBrowser,
-    snapshot,
+  return (
+    environmentId !== null &&
+    rendersServerTabNatively(
+      environmentId,
+      primaryEnvironmentId,
+      primaryHasDesktopBrowser,
+      snapshot,
+    )
   );
 }

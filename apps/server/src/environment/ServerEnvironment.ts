@@ -279,7 +279,7 @@ export const make = Effect.gen(function* () {
       peerLinks: true,
       mcpModeLimitHeader: true,
       linkFence: true,
-      ...(ServerConfig.hasDesktopBrowserChannel(serverConfig) ? { desktopBrowser: true } : {}),
+      desktopBrowser: ServerConfig.hasDesktopBrowserChannel(serverConfig),
     },
   };
 
