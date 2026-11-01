@@ -203,7 +203,16 @@ export function createCdpRelayConnection(
     }
     // Playwright asks for this on every page; the host emulates focus only while it is in use.
     if (command.method === "Emulation.setFocusEmulationEnabled") return Promise.resolve({});
-    return target.send(command.method, command.params ?? {}, child, owner);
+    let params = command.params ?? {};
+    if (command.method === "DOM.setFileInputFiles" && Array.isArray(params["files"])) {
+      params = {
+        ...params,
+        files: params["files"].map((path: unknown) =>
+          typeof path === "string" ? target.serverPath(path) : path,
+        ),
+      };
+    }
+    return target.send(command.method, params, child, owner);
   };
 
   return {

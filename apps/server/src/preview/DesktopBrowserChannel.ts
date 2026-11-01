@@ -89,6 +89,7 @@ const make = Effect.gen(function* () {
   const socketSecret = config.desktopBrowserSocketSecret;
   const changes = yield* PubSub.unbounded<{ key: DesktopTabKey; attached: boolean }>();
   const attachedTabs = new Map<string, DesktopTabKey>();
+  const activeThreads = new Set<string>();
   const inbound = new Map<string, Queue.Queue<string>>();
   const writeLock = yield* Semaphore.make(1);
 
@@ -149,7 +150,13 @@ const make = Effect.gen(function* () {
       }
       case "attached":
         attachedTabs.set(id, key);
-        return PubSub.publish(changes, { key, attached: true });
+        return PubSub.publish(changes, { key, attached: true }).pipe(
+          Effect.andThen(() =>
+            activeThreads.has(key.threadId)
+              ? command({ type: "turn", threadId: key.threadId, active: true })
+              : Effect.void,
+          ),
+        );
       case "detached":
         return detach(id, key);
     }
@@ -313,8 +320,10 @@ const make = Effect.gen(function* () {
       return Effect.sync(() => attachedTabs.has(keyOf(key)));
     }),
     endpoint,
-    turn: Effect.fn("DesktopBrowserChannel.turn")(function (threadId, active) {
-      return command({ type: "turn", threadId, active });
+    turn: Effect.fn("DesktopBrowserChannel.turn")(function* (threadId, active) {
+      if (active) activeThreads.add(threadId);
+      else activeThreads.delete(threadId);
+      yield* command({ type: "turn", threadId, active });
     }),
     pointer: Effect.fn("DesktopBrowserChannel.pointer")(function (key, pointer) {
       return command({ type: "pointer", ...key, ...pointer });

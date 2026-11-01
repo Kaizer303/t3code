@@ -208,7 +208,7 @@ describe("CDP relay downloads", () => {
     ]);
   });
 
-  it("saves downloads where this app reaches a WSL server's directory", async () => {
+  it("maps downloads and directory uploads to the WSL server's disk", async () => {
     const send = vi.fn(async () => ({}));
     const directories: Array<string | null> = [];
     const relay = makeRelay(
@@ -235,6 +235,21 @@ describe("CDP relay downloads", () => {
         downloadPath: "\\\\wsl.localhost\\Ubuntu\\tmp\\artifacts",
         eventsEnabled: true,
       },
+      undefined,
+    );
+    relay.receive(
+      JSON.stringify({
+        id: 2,
+        method: "DOM.setFileInputFiles",
+        params: { objectId: "input", files: ["/home/user/assets"] },
+        sessionId: "t3-preview-page",
+      }),
+    );
+    await settle();
+    expect(send).toHaveBeenLastCalledWith(
+      "DOM.setFileInputFiles",
+      { objectId: "input", files: ["\\\\wsl.localhost\\Ubuntu\\home\\user\\assets"] },
+      undefined,
       undefined,
     );
   });

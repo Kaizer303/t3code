@@ -96,6 +96,7 @@ it.layer(layer)("DesktopBrowserChannel over a desktop socket", (it) => {
       const channel = yield* DesktopBrowserChannel.DesktopBrowserChannel;
       const stale = yield* fakeDesktop;
       const fresh = yield* fakeDesktop;
+      yield* channel.turn(key.threadId, true);
       yield* Queue.offer(stale.frames, attached);
       const staleSession = yield* Effect.scoped(channel.serveSocket(stale.socket)).pipe(
         Effect.forkChild,
@@ -115,6 +116,11 @@ it.layer(layer)("DesktopBrowserChannel over a desktop socket", (it) => {
 
       yield* Queue.offer(fresh.frames, attached);
       yield* fresh.awaitPulls(1);
+      expect(fresh.commands()).toContainEqual({
+        type: "turn",
+        threadId: key.threadId,
+        active: true,
+      });
       yield* Scope.close(endpointScope, Exit.void);
       expect(fresh.commands()).not.toContainEqual({ type: "release", ...key });
 
@@ -123,7 +129,15 @@ it.layer(layer)("DesktopBrowserChannel over a desktop socket", (it) => {
       expect(yield* channel.isAttached(key)).toBe(true);
       yield* channel.pointer(key, { phase: "move", x: 3, y: 4 });
       expect(fresh.commands()).toContainEqual(expect.objectContaining({ type: "pointer" }));
-      expect(stale.commands()).toEqual([]);
+      expect(stale.commands()).toEqual([{ type: "turn", threadId: key.threadId, active: true }]);
+
+      yield* channel.turn(key.threadId, false);
+      yield* Queue.offer(fresh.frames, attached);
+      yield* fresh.awaitPulls(1);
+      expect(fresh.commands().filter((command) => command.type === "turn")).toEqual([
+        { type: "turn", threadId: key.threadId, active: true },
+        { type: "turn", threadId: key.threadId, active: false },
+      ]);
 
       yield* Fiber.interrupt(staleSession);
       yield* Fiber.interrupt(freshSession);
