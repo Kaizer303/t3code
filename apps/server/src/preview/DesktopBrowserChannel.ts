@@ -114,7 +114,9 @@ const make = Effect.gen(function* () {
       }),
       acceptsSocket: false,
       authorizesSocket: () => false,
-      serveSocket: () => Effect.void,
+      serveSocket: Effect.fn("DesktopBrowserChannel.serveSocket")(function () {
+        return Effect.void;
+      }),
     });
   }
 
@@ -217,10 +219,7 @@ const make = Effect.gen(function* () {
           (line) =>
             line.trim().length === 0 || currentSocket !== connection
               ? Effect.void
-              : decodeEventLine(line).pipe(
-                  Effect.flatMap(receive),
-                  Effect.catch(() => Effect.void),
-                ),
+              : decodeEventLine(line).pipe(Effect.flatMap(receive), Effect.ignore),
           { discard: true },
         );
       return yield* reader.pull.pipe(Effect.flatMap(receiveFrames), Effect.forever);

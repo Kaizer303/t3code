@@ -211,7 +211,7 @@ describe("CDP relay downloads", () => {
   it("saves downloads where this app reaches a WSL server's directory", async () => {
     const send = vi.fn(async () => ({}));
     const directories: Array<string | null> = [];
-    const relay = createCdpRelayConnection(
+    const relay = makeRelay(
       makeTarget(
         send,
         (directory) => directories.push(directory),
