@@ -34,7 +34,6 @@ import * as DesktopObservability from "../app/DesktopObservability.ts";
 import * as DesktopTelemetryPublisher from "../telemetry/DesktopTelemetryPublisher.ts";
 import * as DesktopBrowserHost from "../preview/DesktopBrowserHost.ts";
 import * as DesktopWslEnvironment from "../wsl/DesktopWslEnvironment.ts";
-import { linuxPathToWslUncPath } from "../wsl/wslPathParsing.ts";
 
 const INITIAL_RESTART_DELAY = Duration.millis(500);
 const MAX_RESTART_DELAY = Duration.seconds(10);
@@ -198,7 +197,7 @@ interface RunBackendProcessOptions extends DesktopBackendStartConfig {
   readonly desktopBrowserStream?: Stream.Stream<Uint8Array>;
   readonly onDesktopBrowserCommand?: (
     line: string,
-    serverPath?: (path: string) => string,
+    serverPath?: (path: string) => string | Promise<string>,
   ) => Effect.Effect<void>;
   readonly onDesktopTelemetryControl?: (
     message: DesktopTelemetryControlMessageValue,
@@ -629,14 +628,23 @@ export const runBackendProcess = Effect.fn("runBackendProcess")(function* (
     ),
   );
 
+  const processScope = yield* Scope.Scope;
+  const runPromise = Effect.runPromiseWith(yield* Effect.context<never>());
   const desktopBrowserSocketSecret = options.bootstrap.desktopBrowserSocketSecret;
   const onDesktopBrowserCommand = options.onDesktopBrowserCommand;
   const runningDistro = options.runningDistro;
-  // The backend asks for downloads on its own disk, which this app reaches over \\wsl.localhost.
+  // DrvFS mounts cannot be re-exported through WSL UNC paths; let the distro resolve its mounts.
   const serverPath =
     runningDistro === undefined
       ? undefined
-      : (path: string) => linuxPathToWslUncPath(runningDistro, path);
+      : (path: string) =>
+          runPromise(
+            DesktopWslEnvironment.wslToWindowsPath(runningDistro, path).pipe(
+              Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+              Effect.forkIn(processScope),
+              Effect.flatMap(Fiber.join),
+            ),
+          );
   const bridgeDesktopBrowser =
     desktopBrowserSocketSecret !== undefined &&
     options.desktopBrowserStream !== undefined &&

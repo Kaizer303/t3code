@@ -88,7 +88,7 @@ export class DesktopBrowserHost extends Context.Service<
     /** `serverPath` maps a path on the server's disk to one this app can write, as for WSL. */
     readonly handleCommandLine: (
       line: string,
-      serverPath?: (path: string) => string,
+      serverPath?: (path: string) => string | Promise<string>,
     ) => Effect.Effect<void>;
     readonly attach: (key: DesktopBrowserTabKey, debuggee: DesktopBrowserTabDebugger) => void;
     readonly detach: (key: DesktopBrowserTabKey) => void;
@@ -303,7 +303,7 @@ export const make = Effect.gen(function* () {
     }
   };
 
-  const relayFor = (tab: AttachedTab, serverPath: (path: string) => string) => {
+  const relayFor = (tab: AttachedTab, serverPath: (path: string) => string | Promise<string>) => {
     if (tab.relay) return tab.relay;
     const { webContents, debugger: debuggee } = tab.debuggee;
     const send = (method: string, params: Record<string, unknown>, sessionId?: string) =>
@@ -464,7 +464,10 @@ export const make = Effect.gen(function* () {
     emit({ type: "attached", ...key });
   };
 
-  const handleCommandLine = (line: string, serverPath: (path: string) => string = identity) =>
+  const handleCommandLine = (
+    line: string,
+    serverPath: (path: string) => string | Promise<string> = identity,
+  ) =>
     Effect.sync(() => {
       const command = decodeCommand(line);
       if (Option.isNone(command)) return;

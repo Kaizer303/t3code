@@ -14,11 +14,8 @@ export interface CdpRelayTarget {
   readonly url: () => string;
   readonly title: () => string;
   readonly userAgent: () => string;
-  /**
-   * Where this app reaches a path on the server's disk: the path itself when it
-   * launched the server on its own disk, a `\\wsl.localhost` path for WSL.
-   */
-  readonly serverPath: (path: string) => string;
+  /** Where this app reaches a server path, resolving WSL mounts to their Windows paths. */
+  readonly serverPath: (path: string) => string | Promise<string>;
   /** Downloads land there, so the server's Playwright reads them where it asked. */
   readonly setDownloadDirectory: (directory: string | null) => void;
 }
@@ -128,13 +125,14 @@ export function createCdpRelayConnection(
       case "Browser.setDownloadBehavior": {
         const directory = command.params?.["downloadPath"];
         const allowed = command.params?.["behavior"] !== "deny" && typeof directory === "string";
+        const downloadDirectory = allowed ? await target.serverPath(directory) : null;
         // Browser-scoped behavior targets Electron's app session; preview paths belong to will-download.
         const result = await target.send(
           "Page.setDownloadBehavior",
           { behavior: command.params?.["behavior"] === "deny" ? "deny" : "default" },
           undefined,
         );
-        target.setDownloadDirectory(allowed ? target.serverPath(directory) : null);
+        target.setDownloadDirectory(downloadDirectory);
         downloadEventsEnabled = command.params?.["eventsEnabled"] === true;
         return result;
       }
@@ -193,7 +191,7 @@ export function createCdpRelayConnection(
     }
   };
 
-  const pageCommand = (command: CdpCommand): Promise<unknown> => {
+  const pageCommand = async (command: CdpCommand): Promise<unknown> => {
     const child = sessions.get(command.sessionId!) === "page" ? undefined : command.sessionId;
     const owner =
       child === undefined && command.sessionId !== PAGE_SESSION_ID ? command.sessionId : undefined;
@@ -205,12 +203,11 @@ export function createCdpRelayConnection(
     if (command.method === "Emulation.setFocusEmulationEnabled") return Promise.resolve({});
     let params = command.params ?? {};
     if (command.method === "DOM.setFileInputFiles" && Array.isArray(params["files"])) {
-      params = {
-        ...params,
-        files: params["files"].map((path: unknown) =>
-          typeof path === "string" ? target.serverPath(path) : path,
-        ),
-      };
+      const files: Array<unknown> = [];
+      for (const path of params["files"]) {
+        files.push(typeof path === "string" ? await target.serverPath(path) : path);
+      }
+      params = { ...params, files };
     }
     return target.send(command.method, params, child, owner);
   };
